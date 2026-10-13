@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>Teleprompter — AI With Ankit</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%;background:#0b0f14;color:#e8eef7;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",sans-serif;overscroll-behavior:none}
+  button{font-family:inherit;font-size:15px;border:0;border-radius:12px;padding:12px 14px;background:#1d4ed8;color:#fff;font-weight:600}
+  button.sec{background:#1b2430;color:#cfe0f5;border:1px solid #2b3644}
+  button.sm{padding:9px 11px;font-size:13.5px}
+  button:active{filter:brightness(1.25)}
+  /* ---------- SETUP ---------- */
+  #setup{padding:16px 14px 26px;max-width:760px;margin:0 auto;display:block}
+  h1{font-size:20px;margin:6px 0 2px}
+  .sub{color:#8fa3bb;font-size:13px;margin-bottom:14px}
+  textarea{width:100%;min-height:38vh;background:#101720;color:#e8eef7;border:1px solid #26313d;border-radius:14px;
+    padding:13px;font-size:16px;line-height:1.5;resize:vertical;font-family:inherit}
+  .row{display:flex;gap:9px;flex-wrap:wrap;margin-top:11px}
+  .row button{flex:1 1 auto}
+  .hint{font-size:12.5px;color:#7d8fa6;margin-top:13px;line-height:1.55}
+  .hint b{color:#b9cde6}
+  /* ---------- PROMPTER ---------- */
+  #prompter{display:none;position:fixed;inset:0;background:#000;overflow:hidden}
+  body.playing #prompter{display:block}
+  #stage{position:absolute;inset:0 0 0 0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
+    padding:45vh 22px 70vh;transition:none;scroll-behavior:auto}
+  #stage::-webkit-scrollbar{display:none}
+  #text{max-width:900px;margin:0 auto;font-weight:700;text-align:left;white-space:pre-wrap;
+    text-shadow:0 0 1px rgba(0,0,0,.4)}
+  #text .para{margin:0 0 .85em}
+  #text .head{color:#ffd34d;text-transform:uppercase;letter-spacing:.5px}
+  #guide{position:absolute;left:0;right:0;top:calc(45vh - 1.9em);height:3.8em;pointer-events:none;
+    border-top:1px solid rgba(56,189,248,.35);border-bottom:1px solid rgba(56,189,248,.35);
+    background:linear-gradient(180deg,rgba(56,189,248,.07),rgba(56,189,248,.14),rgba(56,189,248,.07));display:none}
+  body.guide #guide{display:block}
+  #fade{position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(180deg,#000 0%,rgba(0,0,0,.55) 12%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 70%,rgba(0,0,0,.55) 88%,#000 100%)}
+  /* mirrored / rotated */
+  body.mirror #text{display:inline-block;transform:scaleX(-1)}
+  body.rot #stage{padding:0}
+  body.rot #text{position:absolute;top:0;left:0;transform-origin:0 0;padding:55vh 18px 60vh}
+  /* top + bottom bars */
+  #topbar{position:fixed;top:0;left:0;right:0;padding:8px 10px;display:flex;gap:8px;align-items:center;
+    background:linear-gradient(180deg,rgba(4,8,14,.94),rgba(4,8,14,.55));opacity:1;transition:opacity .35s;z-index:5}
+  #botbar{position:fixed;bottom:0;left:0;right:0;padding:9px 10px 12px;background:linear-gradient(0deg,rgba(4,8,14,.96),rgba(4,8,14,.6));
+    opacity:1;transition:opacity .35s;z-index:5}
+  body.hideui #topbar,body.hideui #botbar{opacity:0;pointer-events:none}
+  #topbar .t{flex:1;font-size:13px;color:#9db4cf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #botbar .grid{display:flex;gap:7px;flex-wrap:wrap;align-items:center;justify-content:center}
+  .chip{background:#141c26;border:1px solid #26313d;border-radius:999px;padding:7px 11px;font-size:13px;color:#c9dbf0;display:flex;align-items:center;gap:6px}
+  .chip b{color:#7ee787;font-variant-numeric:tabular-nums}
+  .chip.on{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+  input[type=range]{width:120px;accent-color:#38bdf8;vertical-align:middle}
+  #barwrap{height:3px;background:#1b2430;position:fixed;top:0;left:0;right:0;z-index:6}
+  #bar{height:100%;width:0;background:#38bdf8;transition:width .2s linear}
+  #countdown{position:fixed;inset:0;display:none;align-items:center;justify-content:center;font-size:26vw;
+    font-weight:900;color:#38bdf8;background:rgba(0,0,0,.85);z-index:9;text-shadow:0 0 40px rgba(56,189,248,.5)}
+  #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:88px;background:#111a24;border:1px solid #2b3644;
+    color:#dbe9fa;padding:10px 14px;border-radius:12px;font-size:13.5px;opacity:0;transition:opacity .3s;z-index:8;max-width:90vw;text-align:center}
+  #toast.show{opacity:1}
+  .big{font-size:19px;padding:15px 18px}
+  .kbd{background:#111a24;border:1px solid #2b3644;border-radius:6px;padding:1px 6px;font-size:12px;color:#c9dbf0}
+  @media (min-width:700px){#text{font-size:var(--fs)}}
+</style>
+</head>
+<body>
+
+<!-- ============ SETUP SCREEN ============ -->
+<div id="setup">
+  <h1>🎬 Teleprompter</h1>
+  <div class="sub">Script paste karo → <b>Start</b> dabao → fullscreen me padho. Sab options neeche milenge (speed, size, mirror, orientation).</div>
+  <textarea id="input" placeholder="Yaha apna script paste karo…
+
+Tip: heading ke liye line ke start me # lagao (bada dikhega).
+Paragraph ke beech ek khali line chhodo."></textarea>
+  <div class="row">
+    <button class="big" id="startBtn">▶ Start Teleprompter</button>
+    <button class="sec" id="clearBtn">Clear</button>
+  </div>
+  <div class="row">
+    <button class="sec sm" id="shareBtn">🔗 Is script ka link banao</button>
+    <button class="sec sm" id="pasteBtn">📋 Saved script load</button>
+  </div>
+  <div class="hint">
+    <b>Phone me install (best):</b> Chrome me ye page kholo → 3-dot menu → <b>Add to Home screen</b>. Fir ye app ki tarah khulega, offline bhi chalega.<br>
+    <b>Link se seedha script:</b> jo link aapko mile (…/#s=…), usse kholte hi script apne aap load ho jayegi.<br>
+    <b>Padhte waqt:</b> screen pe tap karke play/pause · upar-neeche swipe se scroll · 3 second tak chhodo to controls chhup jayenge.
+  </div>
+</div>
+
+<!-- ============ PROMPTER ============ -->
+<div id="prompter">
+  <div id="barwrap"><div id="bar"></div></div>
+  <div id="stage"><div id="text"></div></div>
+  <div id="guide"></div>
+  <div id="fade"></div>
+
+  <div id="topbar">
+    <button class="sec sm" id="exitBtn">✕ Exit</button>
+    <div class="t" id="titleTxt">Teleprompter</div>
+    <button class="sec sm" id="fsBtn">⛶ Full</button>
+  </div>
+
+  <div id="botbar">
+    <div class="grid">
+      <button class="sm" id="playBtn">▶ Play</button>
+      <button class="sec sm" id="restartBtn">⟲ Start</button>
+      <button class="sec sm" id="prevBtn">⟨ Para</button>
+      <button class="sec sm" id="nextBtn">Para ⟩</button>
+    </div>
+    <div class="grid" style="margin-top:8px">
+      <div class="chip">Speed <input type="range" id="speed" min="6" max="220" value="42"><b id="speedVal">42</b></div>
+      <div class="chip">Size <button class="sec sm" id="fszDown">A−</button><b id="fszVal">44</b><button class="sec sm" id="fszUp">A+</button></div>
+      <div class="chip">Line <button class="sec sm" id="lhDown">−</button><b id="lhVal">1.5</b><button class="sec sm" id="lhUp">+</button></div>
+    </div>
+    <div class="grid" style="margin-top:8px">
+      <div class="chip" id="mirrorChip">🪞 Mirror</div>
+      <div class="chip" id="rotChip">↻ Rotate 90°</div>
+      <div class="chip" id="guideChip">▭ Guide line</div>
+      <div class="chip" id="themeChip">🎨 Theme</div>
+      <div class="chip" id="cdChip">3s Countdown</div>
+      <div class="chip">⏱ <b id="timeVal">0:00</b></div>
+      <div class="chip">📖 <b id="leftVal">—</b></div>
+    </div>
+  </div>
+
+  <div id="countdown">3</div>
+  <div id="toast"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var body = document.body;
+
+  var S = {
+    speed: 42, fs: 44, lh: 1.5, mirror: false, rot: false, guide: false,
+    theme: 'dark', countdown: true, playing: false, script: '', title: 'Teleprompter'
+  };
+
+  /* ---------- themes ---------- */
+  var THEMES = {
+    dark:  {bg:'#000',        fg:'#ffffff', stage:'#000'},
+    soft:  {bg:'#101720',     fg:'#e8eef7', stage:'#101720'},
+    light: {bg:'#ffffff',     fg:'#0b0f14', stage:'#ffffff'},
+    high:  {bg:'#000000',     fg:'#ffe600', stage:'#000000'}
+  };
+
+  /* ---------- storage ---------- */
+  function save(){
+    try{
+      localStorage.setItem('tp_script', $('input').value);
+      localStorage.setItem('tp_cfg', JSON.stringify({speed:S.speed, fs:S.fs, lh:S.lh, mirror:S.mirror,
+        rot:S.rot, guide:S.guide, theme:S.theme, countdown:S.countdown, title:S.title}));
+    }catch(e){}
+  }
+  function loadCfg(){
+    try{
+      var c = JSON.parse(localStorage.getItem('tp_cfg')||'null');
+      if(c){ for(var k in c){ if(k in S) S[k] = c[k]; } }
+      var sc = localStorage.getItem('tp_script');
+      if(sc) $('input').value = sc;
+    }catch(e){}
+  }
+
+  /* ---------- url encode/decode (deflate-raw + base64url) ---------- */
+  function b64e(bytes){
+    var s = '', CH = 0x8000;
+    for(var i=0;i<bytes.length;i+=CH) s += String.fromCharCode.apply(null, bytes.subarray(i,i+CH));
+    return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+  function b64d(str){
+    str = String(str).replace(/-/g,'+').replace(/_/g,'/');
+    while(str.length % 4) str += '=';
+    var bin = atob(str), out = new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function enc(str){
+    var raw = new TextEncoder().encode(str);
+    if(typeof CompressionStream === 'function'){
+      return new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw')))
+        .arrayBuffer().then(function(ab){ return '1' + b64e(new Uint8Array(ab)); });
+    }
+    return Promise.resolve('0' + b64e(raw));
+  }
+  function dec(code){
+    var flag = code.charAt(0), payload = code.slice(1);
+    var bytes = b64d(payload);
+    if(flag === '1'){
+      if(typeof DecompressionStream !== 'function') return Promise.resolve('');
+      return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw')))
+        .text().catch(function(){ return ''; });
+    }
+    return Promise.resolve(new TextDecoder().decode(bytes));
+  }
+
+  /* ---------- render script into #text ---------- */
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function renderText(){
+    var raw = S.script || '';
+    var blocks = raw.split(/\n{2,}/);
+    var html = '';
+    for(var i=0;i<blocks.length;i++){
+      var b = blocks[i].replace(/^\s+|\s+$/g,'');
+      if(!b) continue;
+      var isHead = /^\s*#/.test(b);
+      var txt = b.replace(/^\s*#\s*/,'');
+      html += '<div class="para' + (isHead?' head':'') + '" data-p="' + i + '">' + esc(txt) + '</div>';
+    }
+    $('text').innerHTML = html;
+  }
+
+  /* ---------- apply settings ---------- */
+  function applyTheme(){
+    var t = THEMES[S.theme] || THEMES.dark;
+    $('prompter').style.background = t.bg;
+    $('stage').style.background = t.stage;
+    $('text').style.color = t.fg;
+    document.querySelector('meta[name=theme-color]').setAttribute('content', t.bg);
+    $('bar').style.background = (S.theme==='light') ? '#1d4ed8' : '#38bdf8';
+  }
+  function applyAll(){
+    $('text').style.fontSize = S.fs + 'px';
+    $('text').style.lineHeight = S.lh;
+    body.classList.toggle('mirror', S.mirror);
+    body.classList.toggle('rot', S.rot);
+    body.classList.toggle('guide', S.guide);
+    $('mirrorChip').classList.toggle('on', S.mirror);
+    $('rotChip').classList.toggle('on', S.rot);
+    $('guideChip').classList.toggle('on', S.guide);
+    $('cdChip').classList.toggle('on', S.countdown);
+    $('speed').value = S.speed; $('speedVal').textContent = S.speed;
+    $('fszVal').textContent = S.fs;
+    $('lhVal').textContent = S.lh;
+    $('themeChip').textContent = '🎨 ' + ({dark:'Dark',soft:'Soft',light:'Light',high:'Yellow'})[S.theme];
+    applyTheme();
+    if(S.rot) layoutRotated();
+    updateTime();
+    save();
+  }
+
+  /* ---------- rotated (90°) layout: text laid out horizontally then rotated ---------- */
+  function layoutRotated(){
+    var st = $('stage'), tx = $('text');
+    var w = window.innerWidth, h = window.innerHeight;
+    tx.style.width = h + 'px';
+    tx.style.height = w + 'px';
+    tx.style.transform = 'rotate(90deg) translateY(-' + h + 'px)';
+    st.scrollTop = st.scrollTop;
+  }
+
+  /* ---------- timing / progress ---------- */
+  function words(){ return (S.script || '').trim().split(/\s+/).filter(Boolean).length; }
+  function fmt(s){ s = Math.max(0, Math.round(s)); var m = Math.floor(s/60); var r = s%60; return m + ':' + (r<10?'0':'') + r; }
+  function updateTime(){
+    var total = $('stage').scrollHeight - $('stage').clientHeight;
+    var done = total > 0 ? ($('stage').scrollTop / total) : 0;
+    done = Math.max(0, Math.min(1, done));
+    $('bar').style.width = (done*100).toFixed(1) + '%';
+    var wps = Math.max(0.4, S.speed / (S.fs * S.lh * 0.42));   // rough words/sec from speed & size
+    var remain = (words() * (1-done)) / wps;
+    $('leftVal').textContent = words() ? fmt(remain) + ' left' : '—';
+    $('timeVal').textContent = fmt((words() ? words()/wps : 0) * done);
+  }
+
+  /* ---------- scrolling engine ---------- */
+  var raf = null, last = 0;
+  function tick(ts){
+    if(!S.playing) return;
+    if(!last) last = ts;
+    var dt = (ts - last) / 1000; last = ts;
+    var st = $('stage');
+    st.scrollTop += S.speed * dt;
+    if(st.scrollTop + st.clientHeight >= st.scrollHeight - 1){
+      setPlaying(false);
+      toast('Script khatam ✅');
+      updateTime();
+      return;
+    }
+    if(Math.random() < 0.12) updateTime();
+    raf = requestAnimationFrame(tick);
+  }
+  function setPlaying(v){
+    S.playing = v;
+    $('playBtn').textContent = v ? '⏸ Pause' : '▶ Play';
+    if(v){ last = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }
+    else { cancelAnimationFrame(raf); }
+  }
+
+  /* ---------- wake lock + fullscreen ---------- */
+  var wake = null;
+  function keepAwake(on){
+    try{
+      if(on && 'wakeLock' in navigator){
+        navigator.wakeLock.request('screen').then(function(l){ wake = l; }).catch(function(){});
+      } else if(wake){ wake.release(); wake = null; }
+    }catch(e){}
+  }
+  function goFull(){
+    var el = document.documentElement;
+    try{ (el.requestFullscreen ? el.requestFullscreen() : (el.webkitRequestFullscreen && el.webkitRequestFullscreen())).catch && null; }catch(e){}
+  }
+
+  /* ---------- toast ---------- */
+  var toastT = null;
+  function toast(msg){
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  /* ---------- open prompter ---------- */
+  function openPrompter(){
+    S.script = $('input').value.trim();
+    if(!S.script){ toast('Pehle script paste karo ✍️'); return; }
+    renderText();
+    body.classList.add('playing');
+    $('titleTxt').textContent = S.title || 'Teleprompter';
+    applyAll();
+    $('stage').scrollTop = 0;
+    goFull(); keepAwake(true);
+    if(S.countdown){
+      var n = 3, cd = $('countdown');
+      cd.style.display = 'flex'; cd.textContent = n;
+      var iv = setInterval(function(){
+        n--;
+        if(n > 0){ cd.textContent = n; }
+        else { clearInterval(iv); cd.style.display = 'none'; setPlaying(true); }
+      }, 800);
+    } else {
+      setPlaying(true);
+    }
+  }
+  function closePrompter(){
+    setPlaying(false);
+    body.classList.remove('playing');
+    keepAwake(false);
+    try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
+  }
+
+  /* ---------- big tap = play/pause ; vertical swipe = scroll ---------- */
+  var tapT = 0, tapY = 0, moved = false;
+  $('stage').addEventListener('touchstart', function(e){ tapT = Date.now(); tapY = e.touches[0].clientY; moved = false; }, {passive:true});
+  $('stage').addEventListener('touchmove', function(e){
+    var dy = Math.abs(e.touches[0].clientY - tapY);
+    if(dy > 12) moved = true;
+  }, {passive:true});
+  $('stage').addEventListener('touchend', function(e){
+    if(moved) { hideSoon(); return; }
+    if(Date.now() - tapT < 400){ setPlaying(!S.playing); toast(S.playing ? '▶ Chalu' : '⏸ Ruka'); }
+  }, {passive:true});
+  $('stage').addEventListener('click', function(e){
+    if(moved) return;
+    if('ontouchstart' in window) return;          // desktop handled by keyboard
+    setPlaying(!S.playing);
+  });
+
+  /* auto-hide UI while playing */
+  var hideT = null;
+  function hideSoon(){ clearTimeout(hideT); hideT = setTimeout(function(){ if(S.playing) body.classList.add('hideui'); }, 3000); }
+  ['touchstart','mousemove','keydown'].forEach(function(ev){
+    document.addEventListener(ev, function(){ body.classList.remove('hideui'); hideSoon(); }, {passive:true});
+  });
+  ['touchstart','click'].forEach(function(ev){ $('topbar').addEventListener(ev, function(e){ e.stopPropagation(); }); });
+
+  /* ---------- buttons ---------- */
+  $('startBtn').onclick = openPrompter;
+  $('clearBtn').onclick = function(){ $('input').value = ''; save(); toast('Clear ho gaya'); };
+  $('exitBtn').onclick = closePrompter;
+  $('playBtn').onclick = function(){ setPlaying(!S.playing); };
+  $('restartBtn').onclick = function(){ $('stage').scrollTop = 0; updateTime(); setPlaying(true); };
+  $('fsBtn').onclick = goFull;
+  $('speed').oninput = function(){ S.speed = +this.value; $('speedVal').textContent = S.speed; updateTime(); save(); };
+  $('fszUp').onclick = function(){ S.fs = Math.min(140, S.fs + 4); applyAll(); };
+  $('fszDown').onclick = function(){ S.fs = Math.max(16, S.fs - 4); applyAll(); };
+  $('lhUp').onclick = function(){ S.lh = Math.min(3, +(S.lh + 0.1).toFixed(2)); applyAll(); };
+  $('lhDown').onclick = function(){ S.lh = Math.max(1, +(S.lh - 0.1).toFixed(2)); applyAll(); };
+  $('mirrorChip').onclick = function(){ S.mirror = !S.mirror; applyAll(); };
+  $('rotChip').onclick = function(){ S.rot = !S.rot; applyAll(); toast(S.rot ? 'Text 90° ghum gaya — phone leta kar padho' : 'Normal'); };
+  $('guideChip').onclick = function(){ S.guide = !S.guide; applyAll(); };
+  $('cdChip').onclick = function(){ S.countdown = !S.countdown; applyAll(); };
+  $('themeChip').onclick = function(){
+    var order = ['dark','soft','light','high'];
+    S.theme = order[(order.indexOf(S.theme) + 1) % order.length];
+    applyAll();
+  };
+  /* paragraph jump */
+  function jump(dir){
+    var paras = $('text').querySelectorAll('.para');
+    if(!paras.length) return;
+    var st = $('stage'), cur = st.scrollTop, target = null;
+    var anchor = st.clientHeight * 0.45;
+    var all = [], i;
+    for(i=0;i<paras.length;i++) all.push(paras[i].offsetTop);
+    if(dir > 0){ for(i=0;i<all.length;i++){ if(all[i] > cur + anchor + 6){ target = all[i] - anchor; break; } } }
+    else { for(i=all.length-1;i>=0;i--){ if(all[i] < cur + anchor - 6){ target = all[i] - anchor; break; } } }
+    if(target === null) return;
+    st.scrollTo({top: Math.max(0, target), behavior:'smooth'});
+    updateTime();
+  }
+  $('nextBtn').onclick = function(){ jump(1); };
+  $('prevBtn').onclick = function(){ jump(-1); };
+
+  /* keyboard (desktop / bluetooth remote) */
+  document.addEventListener('keydown', function(e){
+    if(!body.classList.contains('playing')) return;
+    if(e.code === 'Space'){ e.preventDefault(); setPlaying(!S.playing); }
+    if(e.key === 'ArrowUp'){ $('stage').scrollTop -= 60; }
+    if(e.key === 'ArrowDown'){ $('stage').scrollTop += 60; }
+    if(e.key === 'ArrowRight'){ jump(1); }
+    if(e.key === 'ArrowLeft'){ jump(-1); }
+    if(e.key === '+' || e.key === '='){ S.speed = Math.min(220, S.speed + 4); applyAll(); }
+    if(e.key === '-'){ S.speed = Math.max(6, S.speed - 4); applyAll(); }
+    if(e.key === 'f' || e.key === 'F'){ goFull(); }
+    if(e.key === 'Escape'){ closePrompter(); }
+  });
+
+  /* scroll → progress */
+  $('stage').addEventListener('scroll', function(){ updateTime(); }, {passive:true});
+  window.addEventListener('resize', function(){ if(S.rot) layoutRotated(); updateTime(); });
+  window.addEventListener('orientationchange', function(){ setTimeout(function(){ if(S.rot) layoutRotated(); updateTime(); }, 250); });
+
+  /* ---------- share link / paste ---------- */
+  $('shareBtn').onclick = function(){
+    var sc = $('input').value.trim();
+    if(!sc){ toast('Pehle script likho'); return; }
+    enc(sc).then(function(code){
+      var url = location.origin + location.pathname + '#s=' + code;
+      var msg = url + '\n\n(Ye link WhatsApp/Telegram me kholte hi script load ho jayegi)';
+      if(navigator.share){ navigator.share({title:'Teleprompter script', text:sc, url:url}).catch(function(){}); }
+      if(navigator.clipboard){ navigator.clipboard.writeText(url).then(function(){ toast('Link copy ho gaya ✅'); }).catch(function(){ toast('Link: ' + url.slice(0,60) + '…'); }); }
+      console.log(msg);
+      $('toast').textContent = 'Link copy ho gaya ✅ (paste karke bhej do)';
+      $('toast').classList.add('show');
+    });
+  };
+  $('pasteBtn').onclick = function(){
+    try{
+      var sc = localStorage.getItem('tp_script') || '';
+      $('input').value = sc; toast(sc ? 'Saved script load ho gayi ✅' : 'Koi saved script nahi');
+    }catch(e){}
+  };
+
+  /* ---------- boot ---------- */
+  loadCfg();
+  applyAll();
+  (function fromUrl(){
+    var h = location.hash || '';
+    var q = location.search || '';
+    var m = /[#?&]s=([A-Za-z0-9\-_]+)/.exec(h + '&' + q.replace(/^\?/, ''));
+    if(m){
+      dec(m[1]).then(function(txt){
+        if(txt){
+          $('input').value = txt; save();
+          S.title = 'Link script';
+          $('titleTxt').textContent = 'Teleprompter — link script';
+          toast('Script load ho gayi ✅ Start dabao');
+        }
+      });
+    }
+  })();
+  $('input').addEventListener('input', function(){ clearTimeout(window.__s); window.__s = setTimeout(save, 500); });
+  window.addEventListener('beforeunload', save);
+})();
+</script>
+</body>
+</html>
