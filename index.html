@@ -57,6 +57,14 @@
   #botbar{position:fixed;bottom:0;left:0;right:0;padding:9px 10px 12px;background:linear-gradient(0deg,rgba(4,8,14,.96),rgba(4,8,14,.6));
     opacity:1;transition:opacity .35s;z-index:5}
   body.hideui #topbar,body.hideui #botbar{opacity:0;pointer-events:none}
+  body.hideui #barwrap{opacity:0}
+  #barwrap{transition:opacity .3s}
+  /* advanced options collapsed by default -> kam buttons */
+  #botbar .adv{display:none}
+  body.adv #botbar .adv{display:flex}
+  #hintChip{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;color:#6b7f96;font-size:12.5px;
+    opacity:0;transition:opacity .4s;pointer-events:none;z-index:4;white-space:nowrap}
+  body.showhint #hintChip{opacity:1}
   #topbar .t{flex:1;font-size:13px;color:#9db4cf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #botbar .grid{display:flex;gap:7px;flex-wrap:wrap;align-items:center;justify-content:center}
   .chip{background:#141c26;border:1px solid #26313d;border-radius:999px;padding:7px 11px;font-size:13px;color:#c9dbf0;display:flex;align-items:center;gap:6px}
@@ -94,9 +102,10 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     <button class="sec sm" id="pasteBtn">📋 Saved script load</button>
   </div>
   <div class="hint">
-    <b>Phone me install (best):</b> Chrome me ye page kholo → 3-dot menu → <b>Add to Home screen</b>. Fir ye app ki tarah khulega, offline bhi chalega.<br>
-    <b>Link se seedha script:</b> jo link aapko mile (…/#s=…), usse kholte hi script apne aap load ho jayegi.<br>
-    <b>Padhte waqt:</b> screen pe tap karke play/pause · upar-neeche swipe se scroll · 3 second tak chhodo to controls chhup jayenge.
+    <b>Phone me install (best):</b> Chrome me ye page kholo → 3-dot menu → <b>Add to Home screen</b>. Fir ye app ki tarah khulega.<br>
+    <b>Padhte waqt (Clean mode ON):</b> start karte hi <b>saare buttons chhup jaate hain — sirf script dikhti hai</b>. Screen pe <b>ek tap</b> = controls wapas + scroll ruk jayega · <b>dobara tap</b> = phir sirf text aur scroll chalu.<br>
+    <b>Extra options:</b> neeche <b>⚙ More</b> dabao → speed, size, line-height, mirror, rotate (<b>↻ 90° / ↺ -90°</b> — dono side), guide line, theme, countdown.<br>
+    <b>Link se seedha script:</b> jo link mile (…/#s=…), usse kholte hi script apne aap load ho jati hai. Upar-neeche swipe = manual scroll.
   </div>
 </div>
 
@@ -119,22 +128,26 @@ Paragraph ke beech ek khali line chhodo."></textarea>
       <button class="sec sm" id="restartBtn">⟲ Start</button>
       <button class="sec sm" id="prevBtn">⟨ Para</button>
       <button class="sec sm" id="nextBtn">Para ⟩</button>
+      <button class="sec sm" id="advBtn">⚙ More</button>
     </div>
-    <div class="grid" style="margin-top:8px">
+    <div class="grid adv" style="margin-top:8px">
       <div class="chip">Speed <input type="range" id="speed" min="6" max="220" value="42"><b id="speedVal">42</b></div>
       <div class="chip">Size <button class="sec sm" id="fszDown">A−</button><b id="fszVal">44</b><button class="sec sm" id="fszUp">A+</button></div>
       <div class="chip">Line <button class="sec sm" id="lhDown">−</button><b id="lhVal">1.5</b><button class="sec sm" id="lhUp">+</button></div>
     </div>
-    <div class="grid" style="margin-top:8px">
+    <div class="grid adv" style="margin-top:8px">
       <div class="chip" id="mirrorChip">🪞 Mirror</div>
-      <div class="chip" id="rotChip">↻ Rotate 90°</div>
+      <div class="chip" id="rotChip">↻ Rotate</div>
       <div class="chip" id="guideChip">▭ Guide line</div>
       <div class="chip" id="themeChip">🎨 Theme</div>
+      <div class="chip" id="cleanChip">🙈 Clean</div>
       <div class="chip" id="cdChip">3s Countdown</div>
       <div class="chip">⏱ <b id="timeVal">0:00</b></div>
       <div class="chip">📖 <b id="leftVal">—</b></div>
     </div>
   </div>
+
+  <div id="hintChip">Tap = controls · dobara tap = sirf text</div>
 
   <div id="countdown">3</div>
   <div id="toast"></div>
@@ -147,8 +160,9 @@ Paragraph ke beech ek khali line chhodo."></textarea>
   var body = document.body;
 
   var S = {
-    speed: 42, fs: 44, lh: 1.5, mirror: false, rot: false, guide: false,
-    theme: 'dark', countdown: true, playing: false, script: '', title: 'Teleprompter'
+    speed: 42, fs: 44, lh: 1.5, mirror: false, rot: 0, guide: false,
+    theme: 'dark', countdown: true, clean: true, adv: false,
+    playing: false, script: '', title: 'Teleprompter'
   };
 
   /* ---------- themes ---------- */
@@ -170,7 +184,10 @@ Paragraph ke beech ek khali line chhodo."></textarea>
   function loadCfg(){
     try{
       var c = JSON.parse(localStorage.getItem('tp_cfg')||'null');
-      if(c){ for(var k in c){ if(k in S) S[k] = c[k]; } }
+      if(c){
+        if(typeof c.rot === 'boolean') c.rot = c.rot ? 1 : 0;   /* purane version ka migration */
+        for(var k in c){ if(k in S) S[k] = c[k]; }
+      }
       var sc = localStorage.getItem('tp_script');
       if(sc) $('input').value = sc;
     }catch(e){}
@@ -237,11 +254,15 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     $('text').style.fontSize = S.fs + 'px';
     $('text').style.lineHeight = S.lh;
     body.classList.toggle('mirror', S.mirror);
-    body.classList.toggle('rot', S.rot);
+    body.classList.toggle('rot', S.rot !== 0);
     body.classList.toggle('guide', S.guide);
+    body.classList.toggle('adv', S.adv);
     $('mirrorChip').classList.toggle('on', S.mirror);
-    $('rotChip').classList.toggle('on', S.rot);
+    $('rotChip').classList.toggle('on', S.rot !== 0);
+    $('rotChip').textContent = S.rot === 1 ? '↻ 90°' : (S.rot === -1 ? '↺ -90°' : '↻ Rotate');
     $('guideChip').classList.toggle('on', S.guide);
+    $('cleanChip').classList.toggle('on', S.clean);
+    $('advBtn').textContent = S.adv ? '⚙ Less' : '⚙ More';
     $('cdChip').classList.toggle('on', S.countdown);
     $('speed').value = S.speed; $('speedVal').textContent = S.speed;
     $('fszVal').textContent = S.fs;
@@ -259,7 +280,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
      vertical, scrolling + padding + guide + progress all keep working. */
   function layoutRotated(){
     var st = $('stage');
-    if(!S.rot){
+    if(S.rot === 0){
       st.style.width = ''; st.style.height = ''; st.style.left = ''; st.style.top = '';
       st.style.right = ''; st.style.bottom = ''; st.style.transform = ''; st.style.padding = '';
       return;
@@ -269,7 +290,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     st.style.right = 'auto'; st.style.bottom = 'auto';
     st.style.width = vh + 'px';                 /* screen width  after rotation */
     st.style.height = vw + 'px';                /* screen height after rotation */
-    st.style.transform = 'translate(-50%,-50%) rotate(90deg)';
+    st.style.transform = 'translate(-50%,-50%) rotate(' + (S.rot * 90) + 'deg)';
     st.style.padding = Math.round(vw*0.45) + 'px 22px ' + Math.round(vw*0.70) + 'px';
     var room = st.scrollHeight - st.clientHeight;
     if(room > 0 && st.scrollTop > room) st.scrollTop = room;
@@ -314,6 +335,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
   function setPlaying(v){
     if(v && atEnd()) $('stage').scrollTop = 0;  /* khatam hone ke baad Play = restart */
     S.playing = v;
+    if(v && S.clean) hideUI();                  /* clean mode: chalte waqt sirf text */
     $('playBtn').textContent = v ? '⏸ Pause' : '▶ Play';
     if(v){ last = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }
     else { cancelAnimationFrame(raf); }
@@ -350,6 +372,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     applyAll();
     $('stage').scrollTop = 0;
     goFull(); keepAwake(true);
+    if(S.clean){ hideUI(); toast('Tap = controls · dobara tap = sirf text'); }
     if(S.countdown){
       var n = 3, cd = $('countdown');
       cd.style.display = 'flex'; cd.textContent = n;
@@ -369,30 +392,47 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
   }
 
-  /* ---------- big tap = play/pause ; vertical swipe = scroll ---------- */
+  /* ---------- UI show/hide + tap behaviour ---------- */
+  var hideT = null;
+  function showUI(){ body.classList.remove('hideui'); body.classList.add('showhint'); hideSoon(); }
+  function hideUI(){ body.classList.add('hideui'); body.classList.remove('showhint'); }
+  function hideSoon(){
+    clearTimeout(hideT);
+    if(!S.clean) return;
+    hideT = setTimeout(function(){ if(S.playing) hideUI(); }, 2600);
+  }
+  function stageTap(){
+    if(!body.classList.contains('playing')) return;
+    if(!S.clean){ setPlaying(!S.playing); toast(S.playing ? '▶ Chalu' : '⏸ Ruka'); return; }
+    if(body.classList.contains('hideui')){
+      setPlaying(false); showUI(); toast('⏸ Ruka — set karo, phir Play dabao');
+    } else {
+      hideUI(); setPlaying(true);
+    }
+  }
+
+  /* vertical swipe = manual scroll ; single tap = controls/sirf-text */
   var tapT = 0, tapY = 0, moved = false;
   $('stage').addEventListener('touchstart', function(e){ tapT = Date.now(); tapY = e.touches[0].clientY; moved = false; }, {passive:true});
   $('stage').addEventListener('touchmove', function(e){
-    var dy = Math.abs(e.touches[0].clientY - tapY);
-    if(dy > 12) moved = true;
+    if(Math.abs(e.touches[0].clientY - tapY) > 12) moved = true;
   }, {passive:true});
-  $('stage').addEventListener('touchend', function(e){
-    if(moved) { hideSoon(); return; }
-    if(Date.now() - tapT < 400){ setPlaying(!S.playing); toast(S.playing ? '▶ Chalu' : '⏸ Ruka'); }
-  }, {passive:true});
-  $('stage').addEventListener('click', function(e){
+  $('stage').addEventListener('touchend', function(){
     if(moved) return;
-    if('ontouchstart' in window) return;          // desktop handled by keyboard
-    setPlaying(!S.playing);
+    if(Date.now() - tapT < 400) stageTap();
+  }, {passive:true});
+  $('stage').addEventListener('click', function(){
+    if(moved) return;
+    if('ontouchstart' in window) return;      /* desktop: keyboard shortcuts */
+    stageTap();
   });
-
-  /* auto-hide UI while playing */
-  var hideT = null;
-  function hideSoon(){ clearTimeout(hideT); hideT = setTimeout(function(){ if(S.playing) body.classList.add('hideui'); }, 3000); }
-  ['touchstart','mousemove','keydown'].forEach(function(ev){
-    document.addEventListener(ev, function(){ body.classList.remove('hideui'); hideSoon(); }, {passive:true});
+  /* desktop par mouse/keyboard se controls wapas */
+  document.addEventListener('keydown', function(){ if(!S.clean || !('ontouchstart' in window)) showUI(); }, {passive:true});
+  if(!('ontouchstart' in window)) document.addEventListener('mousemove', function(){ showUI(); }, {passive:true});
+  ['touchstart','click'].forEach(function(ev){
+    $('topbar').addEventListener(ev, function(e){ e.stopPropagation(); });
+    $('botbar').addEventListener(ev, function(e){ e.stopPropagation(); });
   });
-  ['touchstart','click'].forEach(function(ev){ $('topbar').addEventListener(ev, function(e){ e.stopPropagation(); }); });
 
   /* ---------- buttons ---------- */
   $('startBtn').onclick = openPrompter;
@@ -407,8 +447,19 @@ Paragraph ke beech ek khali line chhodo."></textarea>
   $('lhUp').onclick = function(){ S.lh = Math.min(3, +(S.lh + 0.1).toFixed(2)); applyAll(); };
   $('lhDown').onclick = function(){ S.lh = Math.max(1, +(S.lh - 0.1).toFixed(2)); applyAll(); };
   $('mirrorChip').onclick = function(){ S.mirror = !S.mirror; applyAll(); };
-  $('rotChip').onclick = function(){ S.rot = !S.rot; applyAll(); toast(S.rot ? 'Text 90° ghum gaya — phone leta kar padho' : 'Normal'); };
+  $('rotChip').onclick = function(){
+    S.rot = (S.rot === 0) ? 1 : (S.rot === 1 ? -1 : 0);
+    applyAll();
+    toast(S.rot === 1 ? '↻ 90° — phone left ghuma kar padho' :
+         (S.rot === -1 ? '↺ -90° — phone right ghuma kar padho' : 'Rotate off'));
+  };
   $('guideChip').onclick = function(){ S.guide = !S.guide; applyAll(); };
+  $('cleanChip').onclick = function(){
+    S.clean = !S.clean; applyAll();
+    if(!S.clean){ showUI(); toast('Clean OFF — controls dikhte rahenge'); }
+    else { if(S.playing) hideUI(); toast('Clean ON — sirf text dikhega'); }
+  };
+  $('advBtn').onclick = function(){ S.adv = !S.adv; applyAll(); };
   $('cdChip').onclick = function(){ S.countdown = !S.countdown; applyAll(); };
   $('themeChip').onclick = function(){
     var order = ['dark','soft','light','high'];
