@@ -42,10 +42,15 @@
   body.guide #guide{display:block}
   #fade{position:absolute;inset:0;pointer-events:none;
     background:linear-gradient(180deg,#000 0%,rgba(0,0,0,.55) 12%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 70%,rgba(0,0,0,.55) 88%,#000 100%)}
-  /* mirrored / rotated */
+  /* mirrored */
   body.mirror #text{display:inline-block;transform:scaleX(-1)}
-  body.rot #stage{padding:0}
-  body.rot #text{position:absolute;top:0;left:0;transform-origin:0 0;padding:55vh 18px 60vh}
+  /* rotated 90°: the WHOLE scroll container is size-swapped + rotated, so the inner
+     scroll axis stays vertical — padding, scroll range and guide keep working */
+  body.rot #stage{right:auto;bottom:auto;transform-origin:center center}
+  body.rot #guide{top:0;bottom:0;height:auto;left:calc(50% - 1.9em);right:auto;width:3.8em;
+    border-top:0;border-bottom:0;border-left:1px solid rgba(56,189,248,.35);border-right:1px solid rgba(56,189,248,.35);
+    background:linear-gradient(90deg,rgba(56,189,248,.07),rgba(56,189,248,.14),rgba(56,189,248,.07))}
+  body.rot #fade{background:linear-gradient(90deg,#000 0%,rgba(0,0,0,.55) 12%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 70%,rgba(0,0,0,.55) 88%,#000 100%)}
   /* top + bottom bars */
   #topbar{position:fixed;top:0;left:0;right:0;padding:8px 10px;display:flex;gap:8px;align-items:center;
     background:linear-gradient(180deg,rgba(4,8,14,.94),rgba(4,8,14,.55));opacity:1;transition:opacity .35s;z-index:5}
@@ -248,14 +253,26 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     save();
   }
 
-  /* ---------- rotated (90°) layout: text laid out horizontally then rotated ---------- */
+  /* ---------- rotated (90°) layout ----------
+     Rotate the scroll CONTAINER (not the text): after rotate(90deg) the swapped
+     box exactly fills the screen, and because the inner scroll axis stays
+     vertical, scrolling + padding + guide + progress all keep working. */
   function layoutRotated(){
-    var st = $('stage'), tx = $('text');
-    var w = window.innerWidth, h = window.innerHeight;
-    tx.style.width = h + 'px';
-    tx.style.height = w + 'px';
-    tx.style.transform = 'rotate(90deg) translateY(-' + h + 'px)';
-    st.scrollTop = st.scrollTop;
+    var st = $('stage');
+    if(!S.rot){
+      st.style.width = ''; st.style.height = ''; st.style.left = ''; st.style.top = '';
+      st.style.right = ''; st.style.bottom = ''; st.style.transform = ''; st.style.padding = '';
+      return;
+    }
+    var vw = window.innerWidth, vh = window.innerHeight;
+    st.style.left = '50%'; st.style.top = '50%';
+    st.style.right = 'auto'; st.style.bottom = 'auto';
+    st.style.width = vh + 'px';                 /* screen width  after rotation */
+    st.style.height = vw + 'px';                /* screen height after rotation */
+    st.style.transform = 'translate(-50%,-50%) rotate(90deg)';
+    st.style.padding = Math.round(vw*0.45) + 'px 22px ' + Math.round(vw*0.70) + 'px';
+    var room = st.scrollHeight - st.clientHeight;
+    if(room > 0 && st.scrollTop > room) st.scrollTop = room;
   }
 
   /* ---------- timing / progress ---------- */
@@ -274,15 +291,20 @@ Paragraph ke beech ek khali line chhodo."></textarea>
 
   /* ---------- scrolling engine ---------- */
   var raf = null, last = 0;
+  function scrollRoom(){ var st = $('stage'); return st.scrollHeight - st.clientHeight; }
+  function atEnd(){ return scrollRoom() > 6 && $('stage').scrollTop >= scrollRoom() - 2; }
   function tick(ts){
     if(!S.playing) return;
     if(!last) last = ts;
     var dt = (ts - last) / 1000; last = ts;
+    if(dt > 0.5) dt = 0.5;                     /* tab dikhne ke baad jump na ho */
     var st = $('stage');
+    var room = scrollRoom();
     st.scrollTop += S.speed * dt;
-    if(st.scrollTop + st.clientHeight >= st.scrollHeight - 1){
+    if(room > 6 && st.scrollTop >= room - 1){   /* sirf tab "khatam" jab scroll room ho */
+      st.scrollTop = room;
       setPlaying(false);
-      toast('Script khatam ✅');
+      toast('Script khatam ✅ — Play dabao, shuru se chalega');
       updateTime();
       return;
     }
@@ -290,6 +312,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     raf = requestAnimationFrame(tick);
   }
   function setPlaying(v){
+    if(v && atEnd()) $('stage').scrollTop = 0;  /* khatam hone ke baad Play = restart */
     S.playing = v;
     $('playBtn').textContent = v ? '⏸ Pause' : '▶ Play';
     if(v){ last = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }
