@@ -248,7 +248,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     $('lhVal').textContent = S.lh;
     $('themeChip').textContent = '🎨 ' + ({dark:'Dark',soft:'Soft',light:'Light',high:'Yellow'})[S.theme];
     applyTheme();
-    if(S.rot) layoutRotated();
+    layoutRotated();   /* hamesha — ON aur OFF dono handle karta hai */
     updateTime();
     save();
   }
@@ -448,8 +448,8 @@ Paragraph ke beech ek khali line chhodo."></textarea>
 
   /* scroll → progress */
   $('stage').addEventListener('scroll', function(){ updateTime(); }, {passive:true});
-  window.addEventListener('resize', function(){ if(S.rot) layoutRotated(); updateTime(); });
-  window.addEventListener('orientationchange', function(){ setTimeout(function(){ if(S.rot) layoutRotated(); updateTime(); }, 250); });
+  window.addEventListener('resize', function(){ layoutRotated(); updateTime(); });
+  window.addEventListener('orientationchange', function(){ setTimeout(function(){ layoutRotated(); updateTime(); }, 250); });
 
   /* ---------- share link / paste ---------- */
   $('shareBtn').onclick = function(){
