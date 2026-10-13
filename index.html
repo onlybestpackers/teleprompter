@@ -457,6 +457,11 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     var q = location.search || '';
     var m = /[#?&]s=([A-Za-z0-9\-_]+)/.exec(h + '&' + q.replace(/^\?/, ''));
     if(m){
+      var isComp = m[1].charAt(0) === '1';
+      if(isComp && typeof DecompressionStream !== 'function'){
+        toast('Ye browser purana hai — script copy karke paste kar do');
+        return;
+      }
       dec(m[1]).then(function(txt){
         if(txt){
           $('input').value = txt; save();
