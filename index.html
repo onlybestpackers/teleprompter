@@ -81,6 +81,32 @@
   .big{font-size:19px;padding:15px 18px}
   .kbd{background:#111a24;border:1px solid #2b3644;border-radius:6px;padding:1px 6px;font-size:12px;color:#c9dbf0}
   @media (min-width:700px){#text{font-size:var(--fs)}}
+  /* ---------- setup: mode choose ---------- */
+  button.sel{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+  /* ---------- POINTS MODE (cue cards) ----------
+     phone camera ke NEECHE laga hai -> padhne wali line screen ke UPAR rakhi hai,
+     taaki aankh lens ke paas rahe */
+  #cards{display:none;position:absolute;inset:0;z-index:2}
+  body.points #cards{display:block}
+  body.points #stage,body.points #guide,body.points #fade{display:none}
+  #cardsIn{height:100%;display:flex;flex-direction:column;gap:14px;padding:6vh 22px 18px;max-width:900px;margin:0 auto}
+  body.mirror #cardsIn{transform:scaleX(-1)}
+  #plabel{display:flex;justify-content:space-between;font-size:15px;font-weight:700;letter-spacing:1px;color:#ffd34d}
+  #ptime{color:#7ee787;font-variant-numeric:tabular-nums}
+  #ptime.warn{color:#fbbf24}
+  #ptime.over{color:#f87171}
+  #pcur{font-weight:800;line-height:1.25;overflow-wrap:anywhere}
+  #pcur .kw{transition:color .2s}
+  #pcur .kw.hit{color:#7ee787}
+  #pnext{opacity:.42;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+  #pnext .lbl{font-size:.7em;letter-spacing:1px}
+  .cue{display:inline-block;font-size:.55em;font-weight:700;background:#7c3aed;color:#fff;border-radius:10px;
+    padding:2px 10px;vertical-align:middle;margin:0 4px;line-height:1.5}
+  #pdots{display:flex;gap:5px;margin-top:auto}
+  #pdots i{flex:1;height:4px;border-radius:2px;background:#26313d}
+  #pdots i.on{background:#38bdf8}
+  #heard{font-size:13px;color:#4b5b6e;min-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.listening #heard{color:#38bdf8}
 </style>
 </head>
 <body>
@@ -94,6 +120,11 @@
 Tip: heading ke liye line ke start me # lagao (bada dikhega).
 Paragraph ke beech ek khali line chhodo."></textarea>
   <div class="row">
+    <button class="sec sm" id="modePoints">🎯 Points (cue cards)</button>
+    <button class="sec sm" id="modeScroll">📜 Scroll (poori script)</button>
+    <button class="sec sm" id="voiceBtn">🎤 Voice-follow</button>
+  </div>
+  <div class="row">
     <button class="big" id="startBtn">▶ Start Teleprompter</button>
     <button class="sec" id="clearBtn">Clear</button>
   </div>
@@ -102,6 +133,8 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     <button class="sec sm" id="pasteBtn">📋 Saved script load</button>
   </div>
   <div class="hint">
+    <b>🎯 Points mode:</b> har point ek card. Khali line ya <b>- / 1.</b> se naya card. <b>HOOK: …</b> ya <b># CTA</b> = card ka label. <b>[👉 screen dikhao]</b> = action cue (bola nahi jata, sirf yaad dilata hai).<br>
+    <b>🎤 Voice-follow:</b> bolte jao — card ke keywords <b style="color:#7ee787">green</b> hote jaate hain, aadhe se zyada bol diye to agla card khud aa jata hai. Tap = agla · swipe → = pichhla · <b>long-press = ruko + controls</b>. Mic permission maangega — Allow karo.<br>
     <b>Phone me install (best):</b> Chrome me ye page kholo → 3-dot menu → <b>Add to Home screen</b>. Fir ye app ki tarah khulega.<br>
     <b>Padhte waqt (Clean mode ON):</b> start karte hi <b>saare buttons chhup jaate hain — sirf script dikhti hai</b>. Screen pe <b>ek tap</b> = controls wapas + scroll ruk jayega · <b>dobara tap</b> = phir sirf text aur scroll chalu.<br>
     <b>Extra options:</b> neeche <b>⚙ More</b> dabao → speed, size, line-height, mirror, rotate (<b>↻ 90° / ↺ -90°</b> — dono side), guide line, theme, countdown.<br>
@@ -115,6 +148,13 @@ Paragraph ke beech ek khali line chhodo."></textarea>
   <div id="stage"><div id="text"></div></div>
   <div id="guide"></div>
   <div id="fade"></div>
+  <div id="cards"><div id="cardsIn">
+    <div id="plabel"><span id="plbl"></span><span id="ptime">0:00</span></div>
+    <div id="pcur"></div>
+    <div id="pnext"></div>
+    <div id="pdots"></div>
+    <div id="heard"></div>
+  </div></div>
 
   <div id="topbar">
     <button class="sec sm" id="exitBtn">✕ Exit</button>
@@ -142,6 +182,8 @@ Paragraph ke beech ek khali line chhodo."></textarea>
       <div class="chip" id="themeChip">🎨 Theme</div>
       <div class="chip" id="cleanChip">🙈 Clean</div>
       <div class="chip" id="cdChip">3s Countdown</div>
+      <div class="chip" id="voiceChip">🎤 Voice</div>
+      <div class="chip" id="langChip">🗣 Hindi</div>
       <div class="chip">⏱ <b id="timeVal">0:00</b></div>
       <div class="chip">📖 <b id="leftVal">—</b></div>
     </div>
@@ -162,6 +204,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
   var S = {
     speed: 42, fs: 44, lh: 1.5, mirror: false, rot: 0, guide: false,
     theme: 'dark', countdown: true, clean: true, adv: false,
+    mode: 'points', voice: true, vlang: 'hi-IN',
     playing: false, script: '', title: 'Teleprompter'
   };
 
@@ -178,7 +221,8 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     try{
       localStorage.setItem('tp_script', $('input').value);
       localStorage.setItem('tp_cfg', JSON.stringify({speed:S.speed, fs:S.fs, lh:S.lh, mirror:S.mirror,
-        rot:S.rot, guide:S.guide, theme:S.theme, countdown:S.countdown, title:S.title}));
+        rot:S.rot, guide:S.guide, theme:S.theme, countdown:S.countdown, title:S.title,
+        mode:S.mode, voice:S.voice, vlang:S.vlang}));
     }catch(e){}
   }
   function loadCfg(){
@@ -247,6 +291,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     $('prompter').style.background = t.bg;
     $('stage').style.background = t.stage;
     $('text').style.color = t.fg;
+    $('cards').style.color = t.fg;
     document.querySelector('meta[name=theme-color]').setAttribute('content', t.bg);
     $('bar').style.background = (S.theme==='light') ? '#1d4ed8' : '#38bdf8';
   }
@@ -268,6 +313,14 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     $('fszVal').textContent = S.fs;
     $('lhVal').textContent = S.lh;
     $('themeChip').textContent = '🎨 ' + ({dark:'Dark',soft:'Soft',light:'Light',high:'Yellow'})[S.theme];
+    $('pcur').style.fontSize = S.fs + 'px';
+    $('pnext').style.fontSize = Math.round(S.fs * 0.5) + 'px';
+    $('modePoints').classList.toggle('sel', S.mode === 'points');
+    $('modeScroll').classList.toggle('sel', S.mode !== 'points');
+    $('voiceBtn').classList.toggle('sel', S.voice);
+    $('voiceBtn').textContent = '🎤 Voice-follow: ' + (S.voice ? 'ON' : 'OFF');
+    $('voiceChip').classList.toggle('on', S.voice);
+    $('langChip').textContent = '🗣 ' + (S.vlang === 'hi-IN' ? 'Hindi' : 'English');
     applyTheme();
     layoutRotated();   /* hamesha — ON aur OFF dono handle karta hai */
     updateTime();
@@ -279,13 +332,17 @@ Paragraph ke beech ek khali line chhodo."></textarea>
      box exactly fills the screen, and because the inner scroll axis stays
      vertical, scrolling + padding + guide + progress all keep working. */
   function layoutRotated(){
-    var st = $('stage');
+    var st = $('stage'), cd = $('cards');
+    var vw = window.innerWidth, vh = window.innerHeight;
     if(S.rot === 0){
       st.style.width = ''; st.style.height = ''; st.style.left = ''; st.style.top = '';
       st.style.right = ''; st.style.bottom = ''; st.style.transform = ''; st.style.padding = '';
+      cd.style.cssText = '';
       return;
     }
-    var vw = window.innerWidth, vh = window.innerHeight;
+    /* cue cards bhi same tarah ghoomte hain (padding nahi chahiye) */
+    cd.style.cssText = 'left:50%;top:50%;right:auto;bottom:auto;width:' + vh + 'px;height:' + vw + 'px;' +
+      'transform:translate(-50%,-50%) rotate(' + (S.rot * 90) + 'deg)';
     st.style.left = '50%'; st.style.top = '50%';
     st.style.right = 'auto'; st.style.bottom = 'auto';
     st.style.width = vh + 'px';                 /* screen width  after rotation */
@@ -333,6 +390,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     raf = requestAnimationFrame(tick);
   }
   function setPlaying(v){
+    if(S.mode === 'points'){ setPointsPlaying(v); return; }
     if(v && atEnd()) $('stage').scrollTop = 0;  /* khatam hone ke baad Play = restart */
     S.playing = v;
     if(v && S.clean) hideUI();                  /* clean mode: chalte waqt sirf text */
@@ -367,12 +425,17 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     S.script = $('input').value.trim();
     if(!S.script){ toast('Pehle script paste karo ✍️'); return; }
     renderText();
+    if(S.mode === 'points'){
+      P.cards = parseCards(S.script).map(buildCard);
+      pointsReset();
+    }
+    body.classList.toggle('points', S.mode === 'points');
     body.classList.add('playing');
     $('titleTxt').textContent = S.title || 'Teleprompter';
     applyAll();
     $('stage').scrollTop = 0;
     goFull(); keepAwake(true);
-    if(S.clean){ hideUI(); toast('Tap = controls · dobara tap = sirf text'); }
+    if(S.clean){ hideUI(); toast(S.mode === 'points' ? 'Tap = agla · long-press = ruko' : 'Tap = controls · dobara tap = sirf text'); }
     if(S.countdown){
       var n = 3, cd = $('countdown');
       cd.style.display = 'flex'; cd.textContent = n;
@@ -387,7 +450,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
   }
   function closePrompter(){
     setPlaying(false);
-    body.classList.remove('playing');
+    body.classList.remove('playing', 'points');
     keepAwake(false);
     try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
   }
@@ -439,7 +502,10 @@ Paragraph ke beech ek khali line chhodo."></textarea>
   $('clearBtn').onclick = function(){ $('input').value = ''; save(); toast('Clear ho gaya'); };
   $('exitBtn').onclick = closePrompter;
   $('playBtn').onclick = function(){ setPlaying(!S.playing); };
-  $('restartBtn').onclick = function(){ $('stage').scrollTop = 0; updateTime(); setPlaying(true); };
+  $('restartBtn').onclick = function(){
+    if(S.mode === 'points'){ pointsReset(); setPlaying(true); return; }
+    $('stage').scrollTop = 0; updateTime(); setPlaying(true);
+  };
   $('fsBtn').onclick = goFull;
   $('speed').oninput = function(){ S.speed = +this.value; $('speedVal').textContent = S.speed; updateTime(); save(); };
   $('fszUp').onclick = function(){ S.fs = Math.min(140, S.fs + 4); applyAll(); };
@@ -461,6 +527,20 @@ Paragraph ke beech ek khali line chhodo."></textarea>
   };
   $('advBtn').onclick = function(){ S.adv = !S.adv; applyAll(); };
   $('cdChip').onclick = function(){ S.countdown = !S.countdown; applyAll(); };
+  $('modePoints').onclick = function(){ S.mode = 'points'; applyAll(); };
+  $('modeScroll').onclick = function(){ S.mode = 'scroll'; applyAll(); };
+  $('voiceBtn').onclick = function(){ S.voice = !S.voice; applyAll(); };
+  $('voiceChip').onclick = function(){
+    S.voice = !S.voice; applyAll();
+    if(!S.voice) voiceOff(); else if(S.playing && S.mode === 'points') voiceOn();
+    toast(S.voice ? '🎤 Voice-follow ON' : 'Voice-follow OFF — tap se agla card');
+  };
+  $('langChip').onclick = function(){
+    S.vlang = (S.vlang === 'hi-IN') ? 'en-IN' : 'hi-IN'; applyAll();
+    voiceOff(); V.rec = null;                       /* nayi language ke liye naya recognizer */
+    if(S.voice && S.playing && S.mode === 'points') voiceOn();
+    toast(S.vlang === 'hi-IN' ? '🗣 Hindi sunega (Hinglish ke liye best)' : '🗣 English (India) sunega');
+  };
   $('themeChip').onclick = function(){
     var order = ['dark','soft','light','high'];
     S.theme = order[(order.indexOf(S.theme) + 1) % order.length];
@@ -480,12 +560,24 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     st.scrollTo({top: Math.max(0, target), behavior:'smooth'});
     updateTime();
   }
-  $('nextBtn').onclick = function(){ jump(1); };
-  $('prevBtn').onclick = function(){ jump(-1); };
+  $('nextBtn').onclick = function(){ S.mode === 'points' ? nextCard() : jump(1); };
+  $('prevBtn').onclick = function(){ S.mode === 'points' ? prevCard() : jump(-1); };
 
   /* keyboard (desktop / bluetooth remote) */
   document.addEventListener('keydown', function(e){
     if(!body.classList.contains('playing')) return;
+    if(S.mode === 'points'){
+      var k = e.key;
+      if(k === ' ' || k === 'ArrowRight' || k === 'ArrowDown' || k === 'PageDown' || k === 'Enter'){
+        e.preventDefault();
+        if(!S.playing && !P.done) setPlaying(true); else nextCard();
+      }
+      if(k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp'){ e.preventDefault(); prevCard(); }
+      if(k === 'p' || k === 'P'){ setPlaying(!S.playing); }
+      if(k === 'f' || k === 'F'){ goFull(); }
+      if(k === 'Escape'){ closePrompter(); }
+      return;
+    }
     if(e.code === 'Space'){ e.preventDefault(); setPlaying(!S.playing); }
     if(e.key === 'ArrowUp'){ $('stage').scrollTop -= 60; }
     if(e.key === 'ArrowDown'){ $('stage').scrollTop += 60; }
@@ -501,6 +593,254 @@ Paragraph ke beech ek khali line chhodo."></textarea>
   $('stage').addEventListener('scroll', function(){ updateTime(); }, {passive:true});
   window.addEventListener('resize', function(){ layoutRotated(); updateTime(); });
   window.addEventListener('orientationchange', function(){ setTimeout(function(){ layoutRotated(); updateTime(); }, 250); });
+
+  /* ================= POINTS MODE (cue cards) + VOICE FOLLOW =================
+     Script ke points ek-ek card pe. Mic se jo bola ja raha hai usse card ke
+     keywords match hote hain (green). Kaafi keywords bol diye -> agla card. */
+  var P = {cards: [], idx: 0, done: false, acc: 0, t0: 0, timer: null};
+  var STOP = {};
+  ('hai hain ha ka ki ke ko se me mei mein main ye yeh yah vo woh wo aur bhi to toh ek is us iss uss ab jo na ne ' +
+   'par pe tha thi the hi ho hoga hogi kar kare karo karna karte raha rahe rha ya kya kyu kyun koi sab bas apna apne ' +
+   'apni aap tum hum mai mujhe de di diya wala wali wale a an is are am was and or of in on for it its you your we i be at as by so do')
+    .split(' ').forEach(function(w){ STOP[w] = 1; });
+
+  /* Devanagari -> latin "consonant skeleton" (hi-IN recognizer Devanagari deta hai,
+     script Hinglish latin me hai — dono ko ek jaisa bana ke compare karte hain) */
+  var DV = {};
+  'क k ख k ग g घ g ङ n च c छ c ज j झ j ञ n ट t ठ t ड d ढ d ण n त t थ t द d ध d न n प p फ f ब b भ b म m य _ र r ल l व v श s ष s स s ह _ ळ l ं n ँ n ० 0 १ 1 २ 2 ३ 3 ४ 4 ५ 5 ६ 6 ७ 7 ८ 8 ९ 9'
+    .split(' ').reduce(function(k, v, i, a){ if(i % 2) DV[a[i-1]] = v === '_' ? '' : v; return k; }, 0);
+  function skel(w){
+    w = String(w).toLowerCase();
+    var s = '', i;
+    if(/[ऀ-ॿ]/.test(w)){
+      for(i = 0; i < w.length; i++){ var ch = w.charAt(i); if(DV[ch] !== undefined) s += DV[ch]; else if(/[0-9]/.test(ch)) s += ch; }
+    } else {
+      s = w.replace(/[^a-z0-9]/g, '')
+           .replace(/ph/g, 'f').replace(/sh/g, 's').replace(/ch/g, '#').replace(/c(?=[eiy])/g, 's').replace(/c/g, 'k')
+           .replace(/#/g, 'c').replace(/w/g, 'v').replace(/z/g, 'j').replace(/q/g, 'k').replace(/x/g, 'ks')
+           .replace(/[aeiouyh]/g, '');
+    }
+    /* g ~ j (gmail = "jeemail", जीमेल) */
+    return s.replace(/g/g, 'j').replace(/([a-z])\1+/g, '$1');
+  }
+  function lev(a, b){
+    var m = a.length, n = b.length, d = [], i, j;
+    for(i = 0; i <= m; i++){ d[i] = [i]; }
+    for(j = 1; j <= n; j++){ d[0][j] = j; }
+    for(i = 1; i <= m; i++) for(j = 1; j <= n; j++)
+      d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a.charAt(i-1) === b.charAt(j-1) ? 0 : 1));
+    return d[m][n];
+  }
+  function sim(a, b){
+    if(a === b) return true;
+    var n = Math.min(a.length, b.length);
+    if(n >= 4 && (a.indexOf(b) === 0 || b.indexOf(a) === 0)) return true;
+    if(n >= 4 && Math.abs(a.length - b.length) <= 1 && lev(a, b) <= 1) return true;
+    if(n >= 6 && lev(a, b) <= 2) return true;
+    return false;
+  }
+  var WORD = /([0-9A-Za-zऀ-ॿ]+)/;
+
+  /* script -> cards. Khali line / "-" / "1." = naya card. "# HOOK" ya "HOOK: ..." = label */
+  function parseCards(raw){
+    var out = [], label = '', buf = '';
+    function flush(){
+      if(buf) out.push({label: label, text: buf.replace(/^["“']+|["”']+$/g, '')});
+      buf = ''; if(out.length && out[out.length-1].label === label) label = '';
+    }
+    raw.replace(/\r/g, '').split('\n').concat(['']).forEach(function(l){
+      l = l.trim();
+      if(!l){ flush(); return; }
+      if(/^#/.test(l)){ flush(); label = l.replace(/^#+\s*/, ''); return; }
+      var m = /^(?:[-•*]|\d+[.)])\s+(.*)$/.exec(l);
+      if(m){ flush(); buf = m[1]; flush(); return; }
+      var lm = /^(hook|cta|intro|outro|end|point\s*\d*)\s*[:：\-–]\s*(.*)$/i.exec(l);
+      if(lm){ flush(); label = lm[1]; buf = lm[2]; return; }
+      buf = buf ? buf + ' ' + l : l;
+    });
+    return out;
+  }
+  function buildCard(c){
+    var text = c.text.replace(/(\d),(?=\d)/g, '$1');
+    var kw = [], seen = {};
+    text.replace(/\[[^\]]*\]/g, ' ').split(WORD).forEach(function(w, i){
+      if(!(i % 2)) return;
+      if(STOP[w.toLowerCase()]) return;
+      var s = skel(w);
+      if(!s || (s.length < 2 && !/\d/.test(s)) || seen[s]) return;
+      seen[s] = 1; kw.push(s);
+    });
+    var html = text.split(/(\[[^\]]*\])/).map(function(seg, i){
+      if(i % 2) return '<span class="cue">' + esc(seg.slice(1, -1)) + '</span>';
+      return seg.split(WORD).map(function(w, j){
+        if(!(j % 2)) return esc(w);
+        var s = skel(w);
+        return (seen[s] && !STOP[w.toLowerCase()]) ? '<span class="kw" data-s="' + s + '">' + esc(w) + '</span>' : esc(w);
+      }).join('');
+    }).join('');
+    return {label: c.label, kw: kw, html: html, hit: {}};
+  }
+
+  function elapsed(){ return P.acc + (P.t0 ? (Date.now() - P.t0) / 1000 : 0); }
+  function ptick(){
+    var s = elapsed(), el = $('ptime');
+    el.textContent = fmt(s) + ' / 1:00';
+    el.className = s > 60 ? 'over' : (s > 45 ? 'warn' : '');
+  }
+  function paintHits(){
+    var c = P.cards[P.idx]; if(!c) return;
+    var sp = $('pcur').querySelectorAll('.kw');
+    for(var i = 0; i < sp.length; i++) sp[i].classList.toggle('hit', !!c.hit[sp[i].getAttribute('data-s')]);
+  }
+  function renderCard(){
+    var n = P.cards.length, c = P.cards[P.idx], nx = P.cards[P.idx + 1], i, dots = '';
+    for(i = 0; i < n; i++) dots += '<i class="' + (i <= P.idx || P.done ? 'on' : '') + '"></i>';
+    $('pdots').innerHTML = dots;
+    if(P.done){
+      $('plbl').textContent = '✅ DONE';
+      $('pcur').textContent = 'Take khatam — ' + fmt(elapsed());
+      $('pnext').innerHTML = '<span class="lbl">Tap / ⟲ Start = dobara take</span>';
+      return;
+    }
+    if(!c){ $('plbl').textContent = ''; $('pcur').textContent = 'Koi point nahi mila'; $('pnext').textContent = ''; return; }
+    $('plbl').textContent = (c.label ? c.label.toUpperCase() + ' · ' : '') + (P.idx + 1) + '/' + n;
+    $('pcur').innerHTML = c.html;
+    $('pnext').innerHTML = nx ? '<span class="lbl">AGLA →</span> ' + nx.html : '<span class="lbl">LAST CARD 👋</span>';
+    paintHits();
+  }
+  function pointsReset(){
+    P.idx = 0; P.done = false; P.acc = 0; P.t0 = S.playing ? Date.now() : 0;
+    P.cards.forEach(function(c){ c.hit = {}; });
+    $('heard').textContent = '';
+    renderCard(); ptick();
+  }
+  function setPointsPlaying(v){
+    if(v && P.done) pointsReset();
+    if(v === S.playing){ if(v && S.clean) hideUI(); return; }
+    S.playing = v;
+    $('playBtn').textContent = v ? '⏸ Pause' : '▶ Play';
+    clearInterval(P.timer);
+    if(v){
+      if(S.clean) hideUI();
+      P.t0 = Date.now(); P.timer = setInterval(ptick, 250);
+      if(S.voice) voiceOn();
+    } else {
+      if(P.t0){ P.acc += (Date.now() - P.t0) / 1000; P.t0 = 0; }
+      voiceOff();
+    }
+    ptick();
+  }
+  function nextCard(){
+    clearTimeout(V.advT); V.advT = null;
+    if(P.done || !P.cards.length) return;
+    markBase();
+    if(P.idx >= P.cards.length - 1){
+      setPlaying(false); P.done = true; renderCard();
+      toast('✅ Take khatam — ' + fmt(elapsed()));
+      return;
+    }
+    P.idx++; renderCard();
+  }
+  function prevCard(){
+    clearTimeout(V.advT); V.advT = null;
+    markBase();
+    if(P.done) P.done = false; else if(P.idx > 0) P.idx--;
+    if(P.cards[P.idx]) P.cards[P.idx].hit = {};
+    renderCard();
+  }
+
+  /* ---------- voice (Web Speech API — Android Chrome) ---------- */
+  var V = {rec: null, want: false, baseI: 0, baseL: 0, lastI: -1, lastLen: 0, lastFinal: true, advT: null};
+  function markBase(){                         /* card badla -> purane words naye card me count na ho */
+    if(V.lastI < 0) return;
+    if(V.lastFinal){ V.baseI = V.lastI + 1; V.baseL = 0; } else { V.baseI = V.lastI; V.baseL = V.lastLen; }
+  }
+  function onResult(e){
+    var last = e.results.length - 1, said = '', i;
+    V.lastI = last; V.lastLen = e.results[last][0].transcript.length; V.lastFinal = e.results[last].isFinal;
+    for(i = Math.max(e.resultIndex, V.baseI); i <= last; i++){
+      var t = e.results[i][0].transcript;
+      if(i === V.baseI && V.baseL) t = t.slice(Math.min(V.baseL, t.length));
+      said += ' ' + t;
+    }
+    var shown = '';
+    for(i = Math.max(0, last - 1); i <= last; i++) shown += ' ' + e.results[i][0].transcript;
+    $('heard').textContent = '🎤 ' + shown.trim().split(/\s+/).slice(-8).join(' ');
+    if(P.done || !S.playing) return;
+    var toks = said.toLowerCase().split(/[^0-9a-zऀ-ॿ]+/).filter(Boolean).map(skel).filter(Boolean);
+    var cands = toks.slice();
+    for(i = 0; i < toks.length - 1; i++) cands.push(toks[i] + toks[i+1]);   /* "chat gpt" = "chatgpt" */
+    function heard(k){ return cands.some(function(t){ return sim(t, k); }); }
+    var c = P.cards[P.idx]; if(!c) return;
+    var changed = false;
+    c.kw.forEach(function(k){ if(!c.hit[k] && heard(k)){ c.hit[k] = 1; changed = true; } });
+    if(changed) paintHits();
+    if(V.advT) return;
+    var n = c.kw.length, got = c.kw.filter(function(k){ return c.hit[k]; }).length;
+    var tail = c.kw.slice(-2).some(function(k){ return c.hit[k]; });
+    /* aadhe keywords + aakhri hissa bola, ya 80% bol diya -> card khatam */
+    var go = n > 0 && ((got >= Math.ceil(n * 0.5) && tail) || got >= Math.ceil(n * 0.8));
+    var nx = P.cards[P.idx + 1];
+    if(!go && nx){                              /* seedha agle point pe pahunch gaye */
+      var own = {}; c.kw.forEach(function(k){ own[k] = 1; });
+      var nk = nx.kw.filter(function(k){ return !own[k]; });
+      var m = nk.filter(heard);
+      if(nk.length && m.length >= Math.min(2, nk.length)){ go = true; m.forEach(function(k){ nx.hit[k] = 1; }); }
+    }
+    if(go) V.advT = setTimeout(function(){ V.advT = null; nextCard(); }, 650);
+  }
+  function voiceOn(){
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ toast('Is browser me voice-follow nahi — Android Chrome use karo (tap se chalega)'); return; }
+    V.want = true;
+    if(!V.rec){
+      var r = V.rec = new SR();
+      r.lang = S.vlang; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
+      r.onstart = function(){ V.baseI = 0; V.baseL = 0; V.lastI = -1; V.lastFinal = true; body.classList.add('listening'); };
+      r.onresult = onResult;
+      r.onerror = function(e){
+        if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+          V.want = false;
+          toast('🎤 Mic permission do — address bar ke 🔒 → Microphone → Allow');
+        }
+      };
+      r.onend = function(){
+        body.classList.remove('listening');
+        if(V.want && V.rec === r) setTimeout(function(){ if(V.want && V.rec === r){ try{ r.start(); }catch(x){} } }, 150);
+      };
+    }
+    try{ V.rec.start(); }catch(x){}
+  }
+  function voiceOff(){
+    V.want = false; clearTimeout(V.advT); V.advT = null;
+    if(V.rec){ try{ V.rec.stop(); }catch(x){} }
+  }
+
+  /* touch on cards: tap = agla · swipe → = pichhla, swipe ← = agla · long-press = ruko + controls */
+  var pc = {t: 0, x: 0, y: 0, lp: null, long: false, moved: false};
+  function cardTap(){
+    if(P.done){ pointsReset(); setPlaying(true); return; }
+    if(!body.classList.contains('hideui')){ hideUI(); setPlaying(true); return; }
+    if(!S.playing){ setPlaying(true); return; }
+    nextCard();
+  }
+  function cardHold(){ setPlaying(false); showUI(); toast('⏸ Ruka — tap = chalu'); }
+  $('cards').addEventListener('touchstart', function(e){
+    pc.x = e.touches[0].clientX; pc.y = e.touches[0].clientY; pc.long = false; pc.moved = false;
+    clearTimeout(pc.lp); pc.lp = setTimeout(function(){ pc.long = true; cardHold(); }, 600);
+  }, {passive: true});
+  $('cards').addEventListener('touchmove', function(e){
+    if(Math.abs(e.touches[0].clientX - pc.x) > 12 || Math.abs(e.touches[0].clientY - pc.y) > 12){ pc.moved = true; clearTimeout(pc.lp); }
+  }, {passive: true});
+  $('cards').addEventListener('touchend', function(e){
+    clearTimeout(pc.lp);
+    if(pc.long) return;
+    var dx = e.changedTouches[0].clientX - pc.x, dy = e.changedTouches[0].clientY - pc.y;
+    if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)){ if(dx > 0) prevCard(); else nextCard(); return; }
+    if(pc.moved) return;
+    cardTap();
+  }, {passive: true});
+  $('cards').addEventListener('click', function(){ if(!('ontouchstart' in window)) cardTap(); });
 
   /* ---------- share link / paste ---------- */
   $('shareBtn').onclick = function(){
