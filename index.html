@@ -134,7 +134,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
   </div>
   <div class="hint">
     <b>🎯 Points mode:</b> har point ek card. Khali line ya <b>- / 1.</b> se naya card. <b>HOOK: …</b> ya <b># CTA</b> = card ka label. <b>[👉 screen dikhao]</b> = action cue (bola nahi jata, sirf yaad dilata hai).<br>
-    <b>🎤 Voice-follow:</b> bolte jao — card ke keywords <b style="color:#7ee787">green</b> hote jaate hain, aadhe se zyada bol diye to agla card khud aa jata hai. Tap = agla · swipe → = pichhla · <b>long-press = ruko + controls</b>. Mic permission maangega — Allow karo.<br>
+    <b>🎤 Voice-follow:</b> bolte jao — card ke keywords <b style="color:#7ee787">green</b> hote jaate hain, aadhe se zyada bol diye to agla card khud aa jata hai. Tap = agla · swipe → = pichhla · <b>long-press = ruko + controls</b>. Mic permission maangega — Allow karo. <b>🔇 Recording se pehle phone ka media volume 0 karo</b> — Android mic chalu hote waqt beep karta hai, wo video me aa sakti hai (Voice OFF = bilkul silent, tap se chalao).<br>
     <b>Phone me install (best):</b> Chrome me ye page kholo → 3-dot menu → <b>Add to Home screen</b>. Fir ye app ki tarah khulega.<br>
     <b>Padhte waqt (Clean mode ON):</b> start karte hi <b>saare buttons chhup jaate hain — sirf script dikhti hai</b>. Screen pe <b>ek tap</b> = controls wapas + scroll ruk jayega · <b>dobara tap</b> = phir sirf text aur scroll chalu.<br>
     <b>Extra options:</b> neeche <b>⚙ More</b> dabao → speed, size, line-height, mirror, rotate (<b>↻ 90° / ↺ -90°</b> — dono side), guide line, theme, countdown.<br>
@@ -435,7 +435,9 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     applyAll();
     $('stage').scrollTop = 0;
     goFull(); keepAwake(true);
-    if(S.clean){ hideUI(); toast(S.mode === 'points' ? 'Tap = agla · long-press = ruko' : 'Tap = controls · dobara tap = sirf text'); }
+    /* history entry: phone ka Back = setup page pe wapas (app band nahi hoti) */
+    if(!(history.state && history.state.tp)) history.pushState({tp: 1}, '');
+    if(S.clean){ hideUI(); toast(S.mode === 'points' ? (S.voice ? '🔇 Phone volume 0 karo (mic beep) · tap = agla' : 'Tap = agla · long-press = ruko') : 'Tap = controls · dobara tap = sirf text'); }
     if(S.countdown){
       var n = 3, cd = $('countdown');
       cd.style.display = 'flex'; cd.textContent = n;
@@ -449,6 +451,8 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     }
   }
   function closePrompter(){
+    /* Exit button: apni history entry hata do (popstate fir yahi function chalayega) */
+    if(history.state && history.state.tp){ history.back(); return; }
     setPlaying(false);
     body.classList.remove('playing', 'points');
     keepAwake(false);
@@ -841,6 +845,11 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     cardTap();
   }, {passive: true});
   $('cards').addEventListener('click', function(){ if(!('ontouchstart' in window)) cardTap(); });
+
+  /* phone ka Back button: prompter band karke setup page dikhao */
+  window.addEventListener('popstate', function(){
+    if(body.classList.contains('playing')) closePrompter();
+  });
 
   /* ---------- share link / paste ---------- */
   $('shareBtn').onclick = function(){
