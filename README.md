@@ -2,7 +2,7 @@
 
 A free teleprompter that runs in your phone's browser. Paste your script, put the phone under your camera, and read. In **Points mode** it listens to you and moves to the next point as you speak.
 
-**Live:** https://onlybestpackers.github.io/teleprompter/
+**Live:** https://techentertainer.com/teleprompter/
 
 Made by **AI With Ankit** — [Instagram](https://www.instagram.com/ai_withankit) · [YouTube](https://www.youtube.com/@aiwith_ankit) · [Facebook](https://www.facebook.com/aiwithankit)
 
