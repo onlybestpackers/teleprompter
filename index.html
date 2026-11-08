@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0f14">
-<title>Teleprompter — AI With Ankit</title>
+<title>AI With Ankit Teleprompter — free</title>
+<meta name="description" content="Free teleprompter by AI With Ankit. Script paste karo, phone camera ke neeche rakho aur padho. Voice-follow ke saath.">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
@@ -26,6 +27,11 @@
   .row button{flex:1 1 auto}
   .hint{font-size:12.5px;color:#7d8fa6;margin-top:13px;line-height:1.55}
   .hint b{color:#b9cde6}
+  .brand{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 4px;font-size:13px;color:#8fa3bb}
+  .brand .free{background:#16a34a;color:#fff;font-weight:700;font-size:11.5px;border-radius:999px;padding:2px 9px;letter-spacing:.3px}
+  .brand a,.foot a{color:#38bdf8;text-decoration:none;font-weight:600}
+  .foot{margin-top:18px;padding-top:12px;border-top:1px solid #1b2430;font-size:12.5px;color:#7d8fa6;line-height:1.7;text-align:center}
+  .foot b{color:#e8eef7}
   /* ---------- PROMPTER ---------- */
   #prompter{display:none;position:fixed;inset:0;background:#000;overflow:hidden}
   body.playing #prompter{display:block}
@@ -113,7 +119,11 @@
 
 <!-- ============ SETUP SCREEN ============ -->
 <div id="setup">
-  <h1>🎬 Teleprompter</h1>
+  <h1>🎬 AI With Ankit Teleprompter</h1>
+  <div class="brand"><span class="free">FREE</span><span>by <b>AI With Ankit</b> ·
+    <a href="https://www.instagram.com/ai_withankit" target="_blank" rel="noopener">Instagram</a> ·
+    <a href="https://www.youtube.com/@aiwith_ankit" target="_blank" rel="noopener">YouTube</a> ·
+    <a href="https://www.facebook.com/aiwithankit" target="_blank" rel="noopener">Facebook</a></span></div>
   <div class="sub">Script paste karo → <b>Start</b> dabao → fullscreen me padho. Sab options neeche milenge (speed, size, mirror, orientation).</div>
   <textarea id="input" placeholder="Yaha apna script paste karo…
 
@@ -139,6 +149,11 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     <b>Padhte waqt (Clean mode ON):</b> start karte hi <b>saare buttons chhup jaate hain — sirf script dikhti hai</b>. Screen pe <b>ek tap</b> = controls wapas + scroll ruk jayega · <b>dobara tap</b> = phir sirf text aur scroll chalu.<br>
     <b>Extra options:</b> neeche <b>⚙ More</b> dabao → speed, size, line-height, mirror, rotate (<b>↻ 90° / ↺ -90°</b> — dono side), guide line, theme, countdown.<br>
     <b>Link se seedha script:</b> jo link mile (…/#s=…), usse kholte hi script apne aap load ho jati hai. Upar-neeche swipe = manual scroll.
+  </div>
+  <div class="foot">
+    Made with ❤️ by <b>AI With Ankit</b> — free for everyone, koi login nahi, aapki script sirf aapke phone me rehti hai.<br>
+    Pasand aaya? <a href="https://www.instagram.com/ai_withankit" target="_blank" rel="noopener">@ai_withankit</a> ko follow karo ·
+    <a href="https://github.com/onlybestpackers/teleprompter" target="_blank" rel="noopener">Open source (MIT)</a>
   </div>
 </div>
 
@@ -858,7 +873,7 @@ Paragraph ke beech ek khali line chhodo."></textarea>
     enc(sc).then(function(code){
       var url = location.origin + location.pathname + '#s=' + code;
       var msg = url + '\n\n(Ye link WhatsApp/Telegram me kholte hi script load ho jayegi)';
-      if(navigator.share){ navigator.share({title:'Teleprompter script', text:sc, url:url}).catch(function(){}); }
+      if(navigator.share){ navigator.share({title:'AI With Ankit Teleprompter script', text:sc, url:url}).catch(function(){}); }
       if(navigator.clipboard){ navigator.clipboard.writeText(url).then(function(){ toast('Link copy ho gaya ✅'); }).catch(function(){ toast('Link: ' + url.slice(0,60) + '…'); }); }
       console.log(msg);
       $('toast').textContent = 'Link copy ho gaya ✅ (paste karke bhej do)';

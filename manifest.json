@@ -1,7 +1,7 @@
 {
-  "name": "Teleprompter — AI With Ankit",
+  "name": "AI With Ankit Teleprompter",
   "short_name": "Teleprompter",
-  "description": "Script paste karo, speed/size/mirror set karo, aur fullscreen me padho.",
+  "description": "Free teleprompter by AI With Ankit. Script paste karo, speed/size/mirror set karo, aur fullscreen me padho.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

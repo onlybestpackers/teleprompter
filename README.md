@@ -1,4 +1,4 @@
-# 🎬 Teleprompter — free, open source, voice-follow
+# 🎬 AI With Ankit Teleprompter — free, open source, voice-follow
 
 A free teleprompter that runs in your phone's browser. Paste your script, put the phone under your camera, and read. In **Points mode** it listens to you and moves to the next point as you speak.
 
